@@ -7,8 +7,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Folder Include="Abstractions\" />
-    <Folder Include="Execution\" />
     <Folder Include="Governance\" />
     <Folder Include="Catalog\" />
     <Folder Include="Registry\" />
