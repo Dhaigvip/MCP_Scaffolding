@@ -1,0 +1,11 @@
+{
+  "Tools": [
+    {
+      "ToolName": "system.hello",
+      "Enabled": true,
+      "OverrideRisk": "Read",
+      "RequiredRoles": [ "User" ],
+      "RequiredScopes": []
+    }
+  ]
+}

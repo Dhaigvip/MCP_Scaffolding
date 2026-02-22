@@ -7,11 +7,17 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Update="mcp.exposure.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="9.0.13" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Mcp.Core\Mcp.Core.csproj" />
+    <ProjectReference Include="..\Mcp.Core\Mcp.Governance.csproj" />
   </ItemGroup>
 
 </Project>

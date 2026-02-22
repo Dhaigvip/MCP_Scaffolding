@@ -1,6 +1,7 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using Mcp.Core.Execution;
+﻿using Mcp.Core.Execution;
+using Mcp.Core.Exposure;
 using Mcp.Core.Registry;
+using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 
 namespace Mcp.Transport.Http.Controllers;
@@ -9,24 +10,28 @@ namespace Mcp.Transport.Http.Controllers;
 [Route("mcp")]
 public class McpController : ControllerBase
 {
-    private readonly ToolExecutor _executor;
+    private readonly GovernanceExecutor _executor;
     private readonly ToolRegistry _registry;
+    private readonly ExposureService _exposure;
 
-    public McpController(ToolExecutor executor, ToolRegistry registry)
+    public McpController(GovernanceExecutor executor, ToolRegistry registry, ExposureService exposure)
     {
         _executor = executor;
         _registry = registry;
+        _exposure = exposure;
     }
 
     [HttpGet("tools")]
     public IActionResult ListTools()
     {
-        var tools = _registry.GetAll().Select(t => new
-        {
-            name = t.Name,
-            description = t.Description,
-            inputSchema = t.GetInputSchema()
-        });
+        var tools = _registry.GetAll()
+            .Where(t => _exposure.IsExposed(t))
+            .Select(t => new
+            {
+                name = t.Name,
+                description = t.Description,
+                inputSchema = t.GetInputSchema()
+            });
 
         return Ok(tools);
     }
