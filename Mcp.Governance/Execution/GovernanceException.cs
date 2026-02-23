@@ -1,11 +1,17 @@
-﻿namespace Mcp.Governance.Execution;
+namespace Mcp.Governance.Execution;
 
+/// <summary>
+/// Single exception type for all governance failures.
+/// McpGovernanceException in Mcp.Core.Governance has been removed — it was never used.
+/// All call sites should catch GovernanceException.
+/// </summary>
 public sealed class GovernanceException : Exception
 {
     public string Code { get; }
     public object? Details { get; }
 
-    public GovernanceException(string code, string message, object? details = null) : base(message)
+    public GovernanceException(string code, string message, object? details = null)
+        : base(message)
     {
         Code = code;
         Details = details;
@@ -17,3 +23,4 @@ public sealed class GovernanceException : Exception
     public static GovernanceException Forbidden(string toolName, string code, string message)
         => new(code, message, new { toolName });
 }
+

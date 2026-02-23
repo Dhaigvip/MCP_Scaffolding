@@ -6,8 +6,6 @@
     "hello.say": {
       "enabled": true,
       "risk": "ReadOnly",
-      "requiredRoles": [],
-      "requiredScopes": [],
       "allowedTenants": []
     }
   }

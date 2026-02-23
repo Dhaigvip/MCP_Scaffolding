@@ -1,9 +1,12 @@
-﻿using Mcp.Governance.Execution;
+using Mcp.Governance.Execution;
+using Mcp.Tooling;
 using Mcp.Tooling.Tools;
 using ModelContextProtocol.Server;
 using System.ComponentModel;
 
 namespace Mcp.Server.Http.ToolAdapters;
+
+// This is the single authoritative MCP adapter for the Hello tool.
 
 [McpServerToolType]
 public sealed class HelloToolAdapter
@@ -15,13 +18,11 @@ public sealed class HelloToolAdapter
         _exec = exec;
     }
 
-    [McpServerTool, Description("Returns a friendly greeting.")]
+    [McpServerTool(Name = ToolNames.HelloSay), Description("Returns a friendly greeting.")]
     public Task<string> SayHello(
-    [Description("Name to greet")] string name,
-    CancellationToken ct)
+        [Description("The name of the person to greet")] string name,
+        CancellationToken ct)
     {
-        return _exec.RunAsync<HelloArgs, string>(
-            new HelloArgs(name),
-            ct);
+        return _exec.RunAsync<HelloArgs, string>(new HelloArgs(name), ct);
     }
 }

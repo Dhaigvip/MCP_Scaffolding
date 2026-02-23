@@ -1,10 +1,16 @@
-﻿namespace Mcp.Governance.Exposure;
+using Mcp.Governance.Policy;
+
+namespace Mcp.Governance.Exposure;
 
 public interface IExposureService
 {
     ExposureManifest Current { get; }
-    bool IsEnabled(string toolName);
-    bool TryGetToolPolicy(string toolName, out Policy.ToolPolicy policy);
+
+    /// <summary>
+    /// Checks enabled AND returns policy in one dictionary lookup.
+    /// Replaces the old pattern of calling IsEnabled() then TryGetToolPolicy() separately.
+    /// </summary>
+    bool TryGetEnabledPolicy(string toolName, out ToolPolicy policy);
 }
 
 public sealed class ExposureService : IExposureService
@@ -18,22 +24,21 @@ public sealed class ExposureService : IExposureService
 
     public ExposureManifest Current => _manifest;
 
-    public bool IsEnabled(string toolName)
+    public bool TryGetEnabledPolicy(string toolName, out ToolPolicy policy)
     {
-        if (!_manifest.GlobalEnabled) return false;
-        if (!_manifest.Tools.TryGetValue(toolName, out var policy)) return false;
-        return policy.Enabled;
-    }
-
-    public bool TryGetToolPolicy(string toolName, out Policy.ToolPolicy policy)
-    {
-        if (_manifest.Tools.TryGetValue(toolName, out var found))
+        if (!_manifest.GlobalEnabled)
         {
-            policy = found;
-            return true;
+            policy = default!;
+            return false;
         }
 
-        policy = default!;
-        return false;
+        if (!_manifest.Tools.TryGetValue(toolName, out var found) || !found.Enabled)
+        {
+            policy = default!;
+            return false;
+        }
+
+        policy = found;
+        return true;
     }
 }

@@ -1,6 +1,6 @@
-﻿namespace Mcp.Tooling.Tools;
+namespace Mcp.Tooling.Tools;
 
 public interface IHelloTool
 {
-    Task<object> SayHelloAsync(string name, CancellationToken ct);
+    Task<string> SayHelloAsync(string name, CancellationToken ct);
 }
