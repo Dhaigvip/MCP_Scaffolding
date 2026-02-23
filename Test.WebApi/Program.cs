@@ -12,9 +12,11 @@ builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new OpenApiInfo { Title = "Math API", Version = "v1" });
 
-    // Register the two filters that read [McpTool] and [McpParam] attributes
+    // Reads [McpTool] attribute writes into operation summary/description
     c.OperationFilter<McpToolOperationFilter>();
-    c.SchemaFilter<McpParamSchemaFilter>();
+
+    // [Description] on model properties is read natively by Swashbuckle
+    // No schema filter needed
 });
 
 var app = builder.Build();
