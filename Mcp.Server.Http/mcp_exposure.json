@@ -1,9 +1,39 @@
 {
   "version": 1,
   "globalEnabled": true,
-  "globalMaxRisk": "ReadOnly",
+  "globalMaxRisk": "Medium",
   "tools": {
-    "hello.say": {
+    "AddNumbers": {
+      "enabled": true,
+      "risk": "ReadOnly",
+      "allowedTenants": []
+    },
+    "SubtractNumbers": {
+      "enabled": true,
+      "risk": "ReadOnly",
+      "allowedTenants": []
+    },
+    "MultiplyNumbers": {
+      "enabled": true,
+      "risk": "ReadOnly",
+      "allowedTenants": []
+    },
+    "DivideNumbers": {
+      "enabled": true,
+      "risk": "ReadOnly",
+      "allowedTenants": []
+    },
+    "PowerNumbers": {
+      "enabled": true,
+      "risk": "ReadOnly",
+      "allowedTenants": []
+    },
+    "SquareRoot": {
+      "enabled": true,
+      "risk": "ReadOnly",
+      "allowedTenants": []
+    },
+    "ModuloNumbers": {
       "enabled": true,
       "risk": "ReadOnly",
       "allowedTenants": []

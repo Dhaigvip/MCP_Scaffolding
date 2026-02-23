@@ -1,21 +1,41 @@
 using Mcp.Governance.Execution;
 using Mcp.Governance.Exposure;
 using Mcp.Governance.Policy;
-using Mcp.Server.Http.ToolAdapters;
-using Mcp.Tooling.Handlers;
-using Mcp.Tooling.Tools;
+using Mcp.Swagger;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // ── Infrastructure ─────────────────────────────────────────────────────────
-// No AddAuthentication / AddAuthorization — handled by the host WebAPI.
-// IHttpContextAccessor is still needed for correlation ID resolution.
 builder.Services.AddHttpContextAccessor();
 
-// ── MCP Server ─────────────────────────────────────────────────────────────
-builder.Services.AddMcpServer()
-    .WithHttpTransport()
-    .WithTools<HelloToolAdapter>();
+// ── Swagger MCP Options ────────────────────────────────────────────────────
+var swaggerMcpOptions = builder.Configuration
+    .GetSection("SwaggerMcp")
+    .Get<SwaggerMcpOptions>()
+    ?? throw new InvalidOperationException("SwaggerMcp config section is required.");
+
+builder.Services.AddSingleton(swaggerMcpOptions);
+
+// ── HttpClient for Swagger loader and tool invoker ─────────────────────────
+// Two named clients: one for fetching swagger.json, one for invoking APIs.
+builder.Services.AddHttpClient<SwaggerToolLoader>(c =>
+{
+    // Swagger loader only needs to reach the swagger.json endpoint
+    c.BaseAddress = new Uri(swaggerMcpOptions.SwaggerUrl
+        .Replace("/swagger/v1/swagger.json", "")
+        .Replace("/swagger/v2/swagger.json", ""));
+});
+
+builder.Services.AddHttpClient<SwaggerToolInvoker>(c =>
+{
+    c.BaseAddress = new Uri(swaggerMcpOptions.ApiBaseUrl);
+    c.Timeout = TimeSpan.FromSeconds(30);
+});
+
+// ── Swagger Tool Pipeline ──────────────────────────────────────────────────
+builder.Services.AddSingleton<DynamicToolRegistry>();
+builder.Services.AddScoped<DynamicMcpToolHandler>();
+builder.Services.AddHostedService<SwaggerMcpStartupService>();
 
 // ── Governance: Options ────────────────────────────────────────────────────
 var governanceOptions = builder.Configuration
@@ -34,21 +54,32 @@ var manifest = builder.Configuration
 builder.Services.AddSingleton(manifest);
 builder.Services.AddSingleton<IExposureService, ExposureService>();
 
-// ── Governance: Policy & Execution ─────────────────────────────────────────
+// ── Governance: Policy ─────────────────────────────────────────────────────
 builder.Services.AddSingleton<IPolicyEngine, PolicyEngine>();
 builder.Services.AddScoped<ICorrelationIdAccessor, HttpContextCorrelationIdAccessor>();
-builder.Services.AddScoped<GovernanceExecutor>();
 
-// ── Tooling ────────────────────────────────────────────────────────────────
-builder.Services.AddSingleton<IHelloTool, HelloTool>();
-builder.Services.AddScoped<IToolHandler<HelloArgs, string>, HelloToolHandler>();
+// ── MCP Server ─────────────────────────────────────────────────────────────
+// No .WithTools<T>() — tools are served dynamically via custom handlers.
+builder.Services.AddMcpServer()
+    .WithHttpTransport()
+    .WithListToolsHandler(async (ctx, ct) =>
+    {
+        var handler = ctx.Server.Services
+            .CreateScope().ServiceProvider          // ← create a scope to resolve Scoped services
+            .GetRequiredService<DynamicMcpToolHandler>();
+        return await handler.ListToolsAsync(ctx, ct);
+    })
+    .WithCallToolHandler(async (ctx, ct) =>
+    {
+        var handler = ctx.Server.Services
+            .CreateScope().ServiceProvider
+            .GetRequiredService<DynamicMcpToolHandler>();
+        return await handler.CallToolAsync(ctx, ct);
+    });
 
 // ── Pipeline ───────────────────────────────────────────────────────────────
 var app = builder.Build();
 
-// No UseAuthentication / UseAuthorization — host WebAPI owns that pipeline.
-
-app.MapMcp();
 app.MapMcp("/api/mcp");
 
 app.Run();

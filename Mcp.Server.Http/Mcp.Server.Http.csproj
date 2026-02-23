@@ -7,15 +7,15 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Mcp.Tooling\Mcp.Tooling.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
     <PackageReference Include="ModelContextProtocol.AspNetCore" Version="0.9.0-preview.2" />
   </ItemGroup>
 
   <ItemGroup>
     <Folder Include="Controllers\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Mcp.Governance\Mcp.Governance.csproj" />
   </ItemGroup>
 
 </Project>
