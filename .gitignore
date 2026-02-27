@@ -361,3 +361,7 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+# API keys / local secrets — never commit these
+/Mcp.Server.Http/appsettings.json
+/Mcp.Server.Http/appsettings.Development.json
+/Mcp.Server.Http/appsettings.Governance.json

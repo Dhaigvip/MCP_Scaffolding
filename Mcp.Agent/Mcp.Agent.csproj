@@ -1,11 +1,14 @@
-﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net9.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <UserSecretsId>14ac77bf-f9f6-464d-a847-4c8164056757</UserSecretsId>
   </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Anthropic" Version="12.8.0" />
@@ -14,7 +17,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Mcp.Agent\Mcp.Agent.csproj" />
     <ProjectReference Include="..\Mcp.Governance\Mcp.Governance.csproj" />
     <ProjectReference Include="..\Mcp.Server\Mcp.Server.csproj" />
   </ItemGroup>

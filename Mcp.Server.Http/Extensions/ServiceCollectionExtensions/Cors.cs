@@ -1,0 +1,25 @@
+﻿namespace Mcp.Server.Http.Extensions;
+
+public static partial class ServiceCollectionExtensions
+{
+    private const string AgentCorsPolicyName = "AgentPolicy";
+
+    public static IServiceCollection AddAgentCors(this IServiceCollection services)
+    {
+        services.AddCors(options =>
+        {
+            options.AddPolicy(AgentCorsPolicyName, policy =>
+                policy.WithOrigins(
+                        "http://localhost:5173",
+                        "http://localhost:3000")
+                      .AllowAnyHeader()
+                      .AllowAnyMethod()
+                      .AllowCredentials());
+        });
+
+        return services;
+    }
+
+    public static IApplicationBuilder UseAgentCors(this IApplicationBuilder app)
+        => app.UseCors(AgentCorsPolicyName);
+}

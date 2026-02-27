@@ -1,5 +1,4 @@
-﻿using System.Net.Http.Json;
-using System.Text;
+﻿using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 
@@ -32,13 +31,13 @@ public sealed class SwaggerToolInvoker
         string correlationId,
         CancellationToken ct)
     {
-        var url     = BuildUrl(tool, arguments);
+        var url = BuildUrl(tool, arguments);
         var request = BuildRequest(tool, url, arguments, correlationId);
 
         _logger.LogDebug("Tool {Tool} → {Method} {Url}", tool.ToolName, tool.HttpMethod, url);
 
         var response = await _http.SendAsync(request, ct);
-        var body     = await response.Content.ReadAsStringAsync(ct);
+        var body = await response.Content.ReadAsStringAsync(ct);
 
         if (!response.IsSuccessStatusCode)
         {
@@ -48,9 +47,9 @@ public sealed class SwaggerToolInvoker
             // Return structured error so the LLM understands what happened
             return JsonSerializer.Serialize(new
             {
-                error      = true,
+                error = true,
                 statusCode = (int)response.StatusCode,
-                message    = body
+                message = body
             });
         }
 
@@ -116,7 +115,7 @@ public sealed class SwaggerToolInvoker
         IReadOnlyDictionary<string, JsonElement> arguments,
         string correlationId)
     {
-        var method  = new HttpMethod(tool.HttpMethod);
+        var method = new HttpMethod(tool.HttpMethod);
         var request = new HttpRequestMessage(method, url);
 
         // Forward correlation ID to the upstream WebAPI for end-to-end tracing
@@ -125,13 +124,15 @@ public sealed class SwaggerToolInvoker
         // Attach body for mutating methods
         if (tool.HttpMethod is "POST" or "PUT" or "PATCH")
         {
-            if (arguments.TryGetValue("body", out var bodyArg))
+            if (arguments.Count > 0)
             {
-                var bodyJson = bodyArg.ValueKind == JsonValueKind.String
-                    ? bodyArg.GetString()!
-                    : bodyArg.ToString();
+                var bodyJson = JsonSerializer.Serialize(arguments);
 
-                request.Content = new StringContent(bodyJson, Encoding.UTF8, "application/json");
+                request.Content = new StringContent(
+                    bodyJson,
+                    Encoding.UTF8,
+                    "application/json"
+                );
             }
         }
 

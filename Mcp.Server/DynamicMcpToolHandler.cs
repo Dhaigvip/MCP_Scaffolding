@@ -37,13 +37,13 @@ public sealed class DynamicMcpToolHandler
         ICorrelationIdAccessor correlationId,
         ILogger<DynamicMcpToolHandler> logger)
     {
-        _registry      = registry;
-        _invoker       = invoker;
-        _exposure      = exposure;
-        _policy        = policy;
-        _options       = options;
+        _registry = registry;
+        _invoker = invoker;
+        _exposure = exposure;
+        _policy = policy;
+        _options = options;
         _correlationId = correlationId;
-        _logger        = logger;
+        _logger = logger;
     }
 
     /// <summary>
@@ -54,9 +54,9 @@ public sealed class DynamicMcpToolHandler
         RequestContext<ListToolsRequestParams> context,
         CancellationToken ct)
     {
-        var tools = _registry.All.Select(d => new Tool
+        var tools = _registry.All.Values.Select(d => new Tool
         {
-            Name        = d.ToolName,
+            Name = d.ToolName,
             Description = d.Description,
             InputSchema = BuildMcpSchema(d.InputSchema)
         }).ToList();
@@ -116,7 +116,7 @@ public sealed class DynamicMcpToolHandler
                 kv => kv.Key,
                 kv => (object)new Dictionary<string, string?>
                 {
-                    ["type"]        = kv.Value.Type,
+                    ["type"] = kv.Value.Type,
                     ["description"] = kv.Value.Description
                 }
             )
