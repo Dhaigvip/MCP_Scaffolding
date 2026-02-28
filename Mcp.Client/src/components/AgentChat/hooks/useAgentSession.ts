@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
 import type { Dispatch, SetStateAction } from "react";
-import type { ChatMessage } from "../types";
+import type { ChatMessage, PalmaContext } from "../types";
 import { uid } from "../utils/uid";
 
 interface UseAgentSessionOptions {
-    apiBase:     string;
-    setMessages: Dispatch<SetStateAction<ChatMessage[]>>;
+    apiBase:      string;
+    setMessages:  Dispatch<SetStateAction<ChatMessage[]>>;
+    palmaContext?: PalmaContext;
 }
 
 export interface UseAgentSessionReturn {
@@ -15,11 +16,15 @@ export interface UseAgentSessionReturn {
 /**
  * Creates an agent session on mount via HTTP POST and deletes it on unmount.
  *
+ * When `palmaContext` is provided it is sent in the POST body so the server
+ * can attach it to the session (version, org, ms, branch) and inject it into
+ * every Palma tool call without exposing it to the LLM.
+ *
  * The stale-closure bug (sessionId not available in cleanup) is solved with a
  * local `createdId` variable shared between the fetch callback and the cleanup
  * closure — React Strict Mode safe via the `cancelled` flag guard.
  */
-export function useAgentSession({ apiBase, setMessages }: UseAgentSessionOptions): UseAgentSessionReturn {
+export function useAgentSession({ apiBase, setMessages, palmaContext }: UseAgentSessionOptions): UseAgentSessionReturn {
     const [sessionId, setSessionId] = useState<string | null>(null);
 
     useEffect(() => {
@@ -31,7 +36,15 @@ export function useAgentSession({ apiBase, setMessages }: UseAgentSessionOptions
             fetch(`${apiBase}/api/agent/session/${id}`, { method: "DELETE" }).catch(() => { });
         };
 
-        fetch(`${apiBase}/api/agent/session`, { method: "POST" })
+        const body = palmaContext
+            ? JSON.stringify({ palmaContext })
+            : undefined;
+
+        fetch(`${apiBase}/api/agent/session`, {
+            method: "POST",
+            headers: body ? { "Content-Type": "application/json" } : undefined,
+            body
+        })
             .then(r => r.json())
             .then(({ sessionId: id }: { sessionId: string }) => {
                 if (!cancelled) {

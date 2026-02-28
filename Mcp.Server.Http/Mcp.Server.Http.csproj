@@ -16,6 +16,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Mcp.Agent\Mcp.Agent.csproj" />
     <ProjectReference Include="..\Mcp.Governance\Mcp.Governance.csproj" />
+    <ProjectReference Include="..\Mcp.Http\Mcp.Http.csproj" />
     <ProjectReference Include="..\Mcp.Server\Mcp.Server.csproj" />
   </ItemGroup>
 

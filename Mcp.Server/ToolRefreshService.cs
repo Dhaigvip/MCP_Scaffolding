@@ -10,10 +10,9 @@ namespace Mcp.Swagger;
 /// </summary>
 public sealed class ToolRefreshService
 {
-    private readonly SwaggerToolLoader   _loader;
+    private readonly IToolLoader         _loader;
     private readonly DynamicToolRegistry _registry;
     private readonly IExposureService    _exposure;
-    private readonly SwaggerMcpOptions   _options;
     private readonly ILogger<ToolRefreshService> _logger;
 
     // Track when the last refresh happened
@@ -22,29 +21,27 @@ public sealed class ToolRefreshService
     public DateTimeOffset LastRefreshedAt => _lastRefreshedAt;
 
     public ToolRefreshService(
-        SwaggerToolLoader loader,
+        IToolLoader loader,
         DynamicToolRegistry registry,
         IExposureService exposure,
-        SwaggerMcpOptions options,
         ILogger<ToolRefreshService> logger)
     {
         _loader   = loader;
         _registry = registry;
         _exposure = exposure;
-        _options  = options;
         _logger   = logger;
     }
 
     /// <summary>
-    /// Fetches swagger.json, parses tools, filters against mcp_exposure.json,
-    /// and atomically updates the registry.
+    /// Loads tools via the configured <see cref="IToolLoader"/>, filters against
+    /// mcp_exposure.json, and atomically updates the registry.
     /// Returns a summary of what changed.
     /// </summary>
     public async Task<RegistryRefreshResult> RefreshAsync(CancellationToken ct = default)
     {
-        _logger.LogInformation("Refreshing tools from {Url}", _options.SwaggerUrl);
+        _logger.LogInformation("Refreshing MCP tools...");
 
-        var tools  = await _loader.LoadAsync(_options.SwaggerUrl, ct);
+        var tools  = await _loader.LoadAsync(ct);
         var result = _registry.Initialize(tools, _exposure);
 
         _lastRefreshedAt = DateTimeOffset.UtcNow;

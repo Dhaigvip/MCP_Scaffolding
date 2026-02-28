@@ -1,5 +1,6 @@
 
 using Mcp.Agent.ModelAbstraction;
+using Mcp.Palma;
 
 namespace Mcp.Agent;
 
@@ -7,6 +8,12 @@ public sealed class AgentSession
 {
     public string? ModelProvider { get; set; } // "anthropic" | "openai" | "gemini"
     public string? ModelName { get; set; } // optional model override per session
+
+    /// <summary>
+    /// Palma context supplied at session creation (version, org, ms, branch).
+    /// Null when using the Swagger loader — injected into every Palma tool call.
+    /// </summary>
+    public PalmaContext? PalmaContext { get; set; }
 
     public string Id { get; } = Guid.NewGuid().ToString("N");
     public DateTime LastActivity { get; set; } = DateTime.UtcNow;

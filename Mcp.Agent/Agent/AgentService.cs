@@ -48,7 +48,7 @@ public sealed class AgentService
 
     private readonly IAgentModelRouter _router;
     private readonly DynamicToolRegistry _registry;
-    private readonly SwaggerToolInvoker _invoker;
+    private readonly IToolInvoker _invoker;
     private readonly IExposureService _exposure;
     private readonly ICorrelationIdAccessor _correlationId;
     private readonly SessionManager _sessions;
@@ -56,7 +56,7 @@ public sealed class AgentService
     public AgentService(
         IAgentModelRouter router,
         DynamicToolRegistry registry,
-        SwaggerToolInvoker invoker,
+        IToolInvoker invoker,
         IExposureService exposure,
         ICorrelationIdAccessor correlationId,
         SessionManager sessions)
@@ -204,7 +204,7 @@ public sealed class AgentService
                         throw new InvalidOperationException($"Tool '{toolName}' not found in registry.");
 
                     resultJson = await _invoker.InvokeAsync(
-                        descriptor, input, _correlationId.CorrelationId, ct);
+                        descriptor, input, session.PalmaContext, _correlationId.CorrelationId, ct);
                     isError = false;
                 }
                 catch (Exception ex)

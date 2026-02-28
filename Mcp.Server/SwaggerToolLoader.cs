@@ -3,21 +3,22 @@ using Microsoft.Extensions.Logging;
 
 namespace Mcp.Swagger;
 
-public sealed class SwaggerToolLoader
+public sealed class SwaggerToolLoader : IToolLoader
 {
     private readonly HttpClient _http;
+    private readonly SwaggerMcpOptions _options;
     private readonly ILogger<SwaggerToolLoader> _logger;
 
-    public SwaggerToolLoader(HttpClient http, ILogger<SwaggerToolLoader> logger)
+    public SwaggerToolLoader(HttpClient http, SwaggerMcpOptions options, ILogger<SwaggerToolLoader> logger)
     {
-        _http = http;
-        _logger = logger;
+        _http    = http;
+        _options = options;
+        _logger  = logger;
     }
 
-    public async Task<List<SwaggerToolDescriptor>> LoadAsync(
-        string swaggerUrl,
-        CancellationToken ct = default)
+    public async Task<List<SwaggerToolDescriptor>> LoadAsync(CancellationToken ct = default)
     {
+        var swaggerUrl = _options.SwaggerUrl;
         _logger.LogInformation("Fetching OpenAPI spec from {Url}", swaggerUrl);
 
         var json = await _http.GetStringAsync(swaggerUrl, ct);

@@ -18,6 +18,7 @@
   
   <ItemGroup>
     <ProjectReference Include="..\Mcp.Governance\Mcp.Governance.csproj" />
+    <ProjectReference Include="..\Mcp.Palma.Contracts\Mcp.Palma.Contracts.csproj" />
   </ItemGroup>
 
 </Project>

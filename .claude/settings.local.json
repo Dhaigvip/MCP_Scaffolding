@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dotnet build Mcp.Server/Mcp.Server.csproj)",
+      "Bash(dotnet build)",
+      "Bash(dotnet build Mcp.Server.Http/Mcp.Server.Http.csproj)",
+      "Bash(dir \"C:\\\\src\\\\Palma_MCP\" /b)",
+      "Bash(dotnet build McpServer.sln --no-restore -v quiet)"
+    ]
+  }
+}

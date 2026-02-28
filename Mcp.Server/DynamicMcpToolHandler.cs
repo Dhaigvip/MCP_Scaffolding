@@ -21,7 +21,7 @@ namespace Mcp.Swagger;
 public sealed class DynamicMcpToolHandler
 {
     private readonly DynamicToolRegistry _registry;
-    private readonly SwaggerToolInvoker _invoker;
+    private readonly IToolInvoker _invoker;
     private readonly IExposureService _exposure;
     private readonly IPolicyEngine _policy;
     private readonly GovernanceOptions _options;
@@ -30,7 +30,7 @@ public sealed class DynamicMcpToolHandler
 
     public DynamicMcpToolHandler(
         DynamicToolRegistry registry,
-        SwaggerToolInvoker invoker,
+        IToolInvoker invoker,
         IExposureService exposure,
         IPolicyEngine policy,
         GovernanceOptions options,
@@ -96,7 +96,8 @@ public sealed class DynamicMcpToolHandler
 
         // ── 4. Forward to WebAPI ──────────────────────────────────────────
         var correlationId = _correlationId.CorrelationId;
-        var result = await _invoker.InvokeAsync(descriptor, arguments, correlationId, ct);
+        // MCP protocol callers don't carry a PalmaContext — pass null (Swagger pipeline)
+        var result = await _invoker.InvokeAsync(descriptor, arguments, null, correlationId, ct);
 
         return new CallToolResult
         {

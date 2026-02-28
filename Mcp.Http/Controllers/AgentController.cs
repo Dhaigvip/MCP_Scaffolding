@@ -3,9 +3,11 @@ using System.Text;
 using System.Text.Json;
 using System.Threading.Channels;
 using Mcp.Agent;
+using Mcp.Palma;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
-namespace Mcp.Server.Http.Controllers;
+namespace Mcp.Http.Controllers;
 
 /// <summary>
 /// Agent API surface consumed by the React frontend.
@@ -53,9 +55,9 @@ public sealed class AgentController : ControllerBase
     // ═══════════════════════════════════════════════════════════════════════════
 
     [HttpPost("session")]
-    public IActionResult CreateSession()
+    public IActionResult CreateSession([FromBody] CreateSessionRequest? request = null)
     {
-        var session = _sessions.Create();
+        var session = _sessions.Create(request?.PalmaContext);
         return Ok(new { sessionId = session.Id });
     }
 
@@ -284,6 +286,9 @@ public sealed class AgentController : ControllerBase
 }
 
 // ─── Request / message models ─────────────────────────────────────────────────
+
+/// <summary>Optional body for POST /api/agent/session — omit when using the Swagger pipeline.</summary>
+public sealed record CreateSessionRequest(PalmaContext? PalmaContext = null);
 
 /// <summary>Body for POST /api/agent/chat (SSE).</summary>
 public sealed record SseChatRequest(string SessionId, string Message);

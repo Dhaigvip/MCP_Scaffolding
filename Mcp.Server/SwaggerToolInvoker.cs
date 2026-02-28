@@ -1,5 +1,6 @@
-﻿using System.Text;
+using System.Text;
 using System.Text.Json;
+using Mcp.Palma;
 using Microsoft.Extensions.Logging;
 
 namespace Mcp.Swagger;
@@ -14,7 +15,7 @@ namespace Mcp.Swagger;
 ///   - JSON body serialization       POST/PUT body from "body" argument key
 ///   - Response → string for MCP     raw JSON string returned to the LLM
 /// </summary>
-public sealed class SwaggerToolInvoker
+public sealed class SwaggerToolInvoker : IToolInvoker
 {
     private readonly HttpClient _http;
     private readonly ILogger<SwaggerToolInvoker> _logger;
@@ -28,6 +29,7 @@ public sealed class SwaggerToolInvoker
     public async Task<string> InvokeAsync(
         SwaggerToolDescriptor tool,
         IReadOnlyDictionary<string, JsonElement> arguments,
+        PalmaContext? palmaContext,  // not used by Swagger — context is embedded in the URL
         string correlationId,
         CancellationToken ct)
     {

@@ -1,7 +1,8 @@
 ﻿using Mcp.Swagger;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
-namespace Mcp.Controllers;
+namespace Mcp.Http.Controllers;
 
 /// <summary>
 /// Admin endpoints for managing the MCP server at runtime.

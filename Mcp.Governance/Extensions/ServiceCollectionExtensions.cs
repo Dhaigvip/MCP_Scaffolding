@@ -24,10 +24,11 @@ public static class ServiceCollectionExtensions
         services.AddSingleton(governanceOptions);
 
         var manifest = new ConfigurationBuilder()
-            .AddJsonFile("mcp_exposure.json", optional: false, reloadOnChange: false)
+            .AddJsonFile(governanceOptions.ExposureManifestPath, optional: false, reloadOnChange: false)
             .Build()
             .Get<ExposureManifest>()
-            ?? throw new InvalidOperationException("mcp_exposure.json is missing or invalid.");
+            ?? throw new InvalidOperationException(
+                $"Exposure manifest '{governanceOptions.ExposureManifestPath}' is missing or invalid.");
 
         services.AddSingleton(manifest);
         services.AddSingleton<IExposureService, ExposureService>();

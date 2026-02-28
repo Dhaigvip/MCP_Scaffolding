@@ -83,15 +83,6 @@
     font-size: 12px;
 }
 
-.ac-protocol-btn {
-    background: var(--ac-bg-surface);
-    border: 1px solid var(--ac-border-default);
-    border-radius: var(--ac-radius-md);
-    color: var(--ac-text-secondary);
-    cursor: pointer;
-    font-size: 11px;
-    padding: 3px 8px;
-}
 
 /* ─── Message list ────────────────────────────────────────────────────────── */
 
@@ -357,4 +348,9 @@
 .ac-send-btn:disabled {
     opacity: 0.5;
     cursor: not-allowed;
+}
+
+.ac-textarea:disabled::placeholder {
+    color: var(--ac-accent-purple);
+    opacity: 1;
 }

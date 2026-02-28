@@ -14,7 +14,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import "./AgentChat.css";
 
-import type { AgentEvent, Protocol } from "./types";
+import type { AgentEvent, Protocol, PalmaContext } from "./types";
 import { uid } from "./utils/uid";
 
 import { useAgentMessages } from "./hooks/useAgentMessages";
@@ -34,6 +34,12 @@ interface AgentChatProps {
     className?: string;
     /** Initial transport protocol — can be toggled at runtime in the header. */
     defaultProtocol?: Protocol;
+    /**
+     * Optional Palma context (version, org, ms, branch) sent to the server at
+     * session creation and injected into every Palma tool call.  Omit when using
+     * the Swagger pipeline — the context is not needed and will be ignored.
+     */
+    palmaContext?: PalmaContext;
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -42,10 +48,11 @@ export function AgentChat({
     apiBase = "",
     placeholder = "Ask the agent anything…",
     className = "",
-    defaultProtocol = "ws"
+    defaultProtocol = "ws",
+    palmaContext
 }: AgentChatProps) {
     const [input, setInput] = useState("");
-    const [protocol, setProtocol] = useState<Protocol>(defaultProtocol);
+    const [protocol] = useState<Protocol>(defaultProtocol);
     const bottomRef = useRef<HTMLDivElement>(null);
 
     // ── Core message state + event dispatcher ─────────────────────────────────
@@ -61,7 +68,7 @@ export function AgentChat({
     } = useAgentMessages();
 
     // ── Session lifecycle ─────────────────────────────────────────────────────
-    const { sessionId } = useAgentSession({ apiBase, setMessages });
+    const { sessionId } = useAgentSession({ apiBase, setMessages, palmaContext });
 
     // ── WebSocket lifecycle ───────────────────────────────────────────────────
     const { wsRef, wsConnected } = useAgentWebSocket({
@@ -198,18 +205,11 @@ export function AgentChat({
         <div className={`agent-chat ${className}`}>
             {/* ── Header bar ── */}
             <div className="ac-header">
-                <span className="ac-header__title">AI Agent</span>
+                <span className="ac-header__title">AI Agent Status</span>
                 <div className="ac-header__controls">
                     <span className="ac-status" style={{ color: statusColor }}>
                         {statusLabel}
                     </span>
-                    <button
-                        title="Toggle between WebSocket and SSE"
-                        onClick={() => setProtocol((p) => (p === "ws" ? "sse" : "ws"))}
-                        className="ac-protocol-btn"
-                    >
-                        {protocol === "ws" ? "Switch to SSE" : "Switch to WS"}
-                    </button>
                 </div>
             </div>
 
@@ -218,7 +218,7 @@ export function AgentChat({
                 {messages.length === 0 && (
                     <div className="ac-empty-state">
                         <p>AI Agent ready</p>
-                        <p>Connected to your Swagger API tools. Ask me anything!</p>
+                        <p>Connected to your Palma API tools. Ask me anything!</p>
                     </div>
                 )}
 
@@ -245,7 +245,7 @@ export function AgentChat({
                             void sendMessage();
                         }
                     }}
-                    placeholder={placeholder}
+                    placeholder={isStreaming ? "Agent is thinking…" : placeholder}
                     disabled={inputDisabled}
                     rows={2}
                     className="ac-textarea"

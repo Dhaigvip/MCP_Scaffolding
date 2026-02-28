@@ -1,7 +1,7 @@
 using Mcp.Agent;
 using Mcp.Governance;
 using Mcp.Governance.Execution;
-using Mcp.Server.Http;
+using Mcp.Http;
 using Mcp.Swagger;
 
 var builder = WebApplication.CreateBuilder(args);

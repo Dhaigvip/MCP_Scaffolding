@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using Mcp.Palma;
 
 namespace Mcp.Agent;
 
@@ -21,9 +22,9 @@ public sealed class SessionManager : IDisposable
 
     // ─── Public API ───────────────────────────────────────────────────────────
 
-    public AgentSession Create()
+    public AgentSession Create(PalmaContext? palmaContext = null)
     {
-        var session = new AgentSession();
+        var session = new AgentSession { PalmaContext = palmaContext };
         _sessions[session.Id] = session;
         return session;
     }

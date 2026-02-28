@@ -1,4 +1,7 @@
-namespace Mcp.Server.Http;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.Extensions.DependencyInjection;
+
+namespace Mcp.Http;
 
 public static class CorsServiceCollectionExtensions
 {

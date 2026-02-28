@@ -1,10 +1,12 @@
+using Mcp.Governance.Execution;
 using Microsoft.AspNetCore.Http;
 
-namespace Mcp.Governance.Execution;
+namespace Mcp.Http;
 
 /// <summary>
-/// Reads correlation ID from the request header, falling back to a new GUID.
-/// Header name is configurable — defaults to "X-Correlation-Id".
+/// Reads the correlation ID from the incoming HTTP request header,
+/// falling back to a new GUID if the header is absent.
+/// Header name defaults to "X-Correlation-Id".
 /// </summary>
 public sealed class HttpContextCorrelationIdAccessor : ICorrelationIdAccessor
 {
