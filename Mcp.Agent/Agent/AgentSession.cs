@@ -21,6 +21,12 @@ public sealed class AgentSession
 
     public List<AgentMessage> History { get; } = new();
 
+    /// <summary>
+    /// Tool list resolved once on the first turn and reused for the lifetime of this session.
+    /// Populated lazily by <see cref="AgentService"/> via <c>??=</c>.
+    /// </summary>
+    public List<AgentTool>? CachedTools { get; set; }
+
     private readonly Dictionary<string, TaskCompletionSource<bool>> _pendingApprovals = new();
 
     public bool ResolveHitl(string callId, bool approved)

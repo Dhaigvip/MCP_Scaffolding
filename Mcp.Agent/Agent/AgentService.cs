@@ -92,8 +92,10 @@ public sealed class AgentService
             Parts = [AgentMessagePart.TextPart(userMessage)]
         });
 
-        // Tool list is version-aware for Palma sessions, registry-based for Swagger sessions
-        var tools = _toolSource.GetTools(session);
+        // Resolved once on first turn, then reused for the session lifetime.
+        // Palma mode: version-aware (reads IPalmaEndpointSource for session.PalmaContext.Version).
+        // Swagger mode: static registry populated at startup.
+        var tools = session.CachedTools ??= _toolSource.GetTools(session);
 
         if (tools.Count == 0)
         {
