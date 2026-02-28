@@ -1,4 +1,8 @@
-namespace Mcp.Palma;
+using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
+
+namespace Mcp.Palma.Contracts;
 
 /// <summary>
 /// In-process invocation contract for Palma endpoints.

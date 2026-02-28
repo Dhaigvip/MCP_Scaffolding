@@ -1,6 +1,7 @@
 
 using Mcp.Agent.ModelAbstraction;
 using Mcp.Palma;
+using Mcp.Palma.Contracts;
 
 namespace Mcp.Agent;
 

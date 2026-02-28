@@ -1,6 +1,7 @@
 using System.Runtime.CompilerServices;
 using System.Text.Json;
 using Mcp.Agent.ModelAbstraction;
+using Mcp.Agent.ToolSource;
 using Mcp.Governance.Execution;
 using Mcp.Governance.Exposure;
 using Mcp.Governance.Policy;
@@ -13,7 +14,9 @@ namespace Mcp.Agent;
 ///
 /// Design decisions:
 /// • Uses IAgentModelRouter to pick the right LLM per session (Anthropic, OpenAI, …).
-/// • Calls SwaggerToolInvoker directly in-process — no loopback HTTP overhead.
+/// • Tool list and descriptors come from IAgentToolSource, which is either:
+///     - RegistryAgentToolSource (Swagger mode — static registry, loaded at startup)
+///     - PalmaAgentToolSource   (Palma mode  — dynamic, version-aware per session)
 /// • Risk levels come from ExposureManifest — admin-controlled, not keyword guessing.
 /// • Returns IAsyncEnumerable&lt;AgentEvent&gt; so the controller can stream each event as SSE.
 /// • HITL: awaits AgentSession.WaitForApproval(callId), suspending the enumerable
@@ -47,7 +50,7 @@ public sealed class AgentService
         """;
 
     private readonly IAgentModelRouter _router;
-    private readonly DynamicToolRegistry _registry;
+    private readonly IAgentToolSource _toolSource;
     private readonly IToolInvoker _invoker;
     private readonly IExposureService _exposure;
     private readonly ICorrelationIdAccessor _correlationId;
@@ -55,14 +58,14 @@ public sealed class AgentService
 
     public AgentService(
         IAgentModelRouter router,
-        DynamicToolRegistry registry,
+        IAgentToolSource toolSource,
         IToolInvoker invoker,
         IExposureService exposure,
         ICorrelationIdAccessor correlationId,
         SessionManager sessions)
     {
         _router = router;
-        _registry = registry;
+        _toolSource = toolSource;
         _invoker = invoker;
         _exposure = exposure;
         _correlationId = correlationId;
@@ -76,7 +79,6 @@ public sealed class AgentService
         string userMessage,
         [EnumeratorCancellation] CancellationToken ct = default)
     {
-        // Graceful session-not-found: yield an error event instead of throwing
         var session = _sessions.Get(sessionId);
         if (session is null)
         {
@@ -86,17 +88,18 @@ public sealed class AgentService
 
         session.History.Add(new AgentMessage
         {
-            Role  = AgentRole.User,
+            Role = AgentRole.User,
             Parts = [AgentMessagePart.TextPart(userMessage)]
         });
 
-        var tools = BuildNeutralTools();
+        // Tool list is version-aware for Palma sessions, registry-based for Swagger sessions
+        var tools = _toolSource.GetTools(session);
 
         if (tools.Count == 0)
         {
             yield return new ErrorAgentEvent(
                 "No API tools are currently available. " +
-                "Please ensure the Swagger/OpenAPI specification is loaded and try again.");
+                "Please ensure the API specification is loaded and try again.");
             yield return new DoneAgentEvent();
             yield break;
         }
@@ -112,17 +115,17 @@ public sealed class AgentService
                 var modelRequest = new AgentModelRequest
                 {
                     SystemPrompt = SystemPrompt,
-                    Tools        = tools,
-                    Messages     = session.History,
-                    MaxTokens    = 16_000,
-                    Model        = session.ModelName   // null = model's default
+                    Tools = tools,
+                    Messages = session.History,
+                    MaxTokens = 16_000,
+                    Model = session.ModelName
                 };
 
                 var model = _router.Resolve(session, modelRequest);
                 modelResponse = await model.GenerateAsync(modelRequest, ct);
             }
             catch (OperationCanceledException) { callError = new ErrorAgentEvent("Request cancelled."); }
-            catch (Exception ex)               { callError = new ErrorAgentEvent($"Model error: {ex.Message}"); }
+            catch (Exception ex) { callError = new ErrorAgentEvent($"Model error: {ex.Message}"); }
 
             if (callError is not null) { yield return callError; yield break; }
 
@@ -143,10 +146,9 @@ public sealed class AgentService
                 }
             }
 
-            // Persist assistant turn — skip thinking parts (no round-trip signature needed)
             session.History.Add(new AgentMessage
             {
-                Role  = AgentRole.Assistant,
+                Role = AgentRole.Assistant,
                 Parts = modelResponse.Parts
                     .Where(p => p.Type != AgentPartType.Thinking)
                     .ToList()
@@ -161,9 +163,9 @@ public sealed class AgentService
             {
                 if (part.Type != AgentPartType.ToolCall) continue;
 
-                var toolName = part.ToolName  ?? "";
-                var callId   = part.ToolCallId ?? "";
-                var input    = part.ToolInput  ?? new Dictionary<string, JsonElement>();
+                var toolName = part.ToolName ?? "";
+                var callId = part.ToolCallId ?? "";
+                var input = part.ToolInput ?? new Dictionary<string, JsonElement>();
                 var riskInfo = GetRiskInfo(toolName);
 
                 if (riskInfo.RequiresApproval)
@@ -176,7 +178,7 @@ public sealed class AgentService
                     catch (OperationCanceledException)
                     {
                         hitlError = new ErrorAgentEvent("Request cancelled during approval wait.");
-                        approved  = false;
+                        approved = false;
                     }
 
                     if (hitlError is not null) { yield return hitlError; yield break; }
@@ -194,14 +196,14 @@ public sealed class AgentService
                     yield return new ToolAutoAgentEvent(toolName, input);
                 }
 
-                // ── Execute tool in-process ───────────────────────────────────
+                // ── Execute tool ──────────────────────────────────────────────
                 string resultJson;
-                bool   isError;
+                bool isError;
 
                 try
                 {
-                    if (!_registry.TryGet(toolName, out var descriptor))
-                        throw new InvalidOperationException($"Tool '{toolName}' not found in registry.");
+                    var descriptor = _toolSource.GetDescriptor(toolName, session)
+                        ?? throw new InvalidOperationException($"Tool '{toolName}' not found.");
 
                     resultJson = await _invoker.InvokeAsync(
                         descriptor, input, session.PalmaContext, _correlationId.CorrelationId, ct);
@@ -210,17 +212,16 @@ public sealed class AgentService
                 catch (Exception ex)
                 {
                     resultJson = $"Tool execution error: {ex.Message}";
-                    isError    = true;
+                    isError = true;
                 }
 
                 yield return new ToolResultAgentEvent(toolName, resultJson, isError);
                 toolResultParts.Add(AgentMessagePart.ToolResultPart(callId, resultJson, isError));
             }
 
-            // Feed tool results back to the LLM
             session.History.Add(new AgentMessage
             {
-                Role  = AgentRole.User,
+                Role = AgentRole.User,
                 Parts = toolResultParts
             });
         }
@@ -230,32 +231,12 @@ public sealed class AgentService
 
     // ─── Helpers ──────────────────────────────────────────────────────────────
 
-    private List<AgentTool> BuildNeutralTools() =>
-        _registry.All.Values.Select(d =>
-        {
-            var schemaJson = JsonSerializer.SerializeToElement(new
-            {
-                type       = "object",
-                properties = d.InputSchema.Properties.ToDictionary(
-                    kv => kv.Key,
-                    kv => new { type = kv.Value.Type, description = kv.Value.Description }),
-                required   = d.InputSchema.Required
-            });
-
-            return new AgentTool
-            {
-                Name          = d.ToolName,
-                Description   = d.Description,
-                InputJsonSchema = schemaJson
-            };
-        }).ToList();
-
     private RiskInfo GetRiskInfo(string toolName)
     {
         if (_exposure.TryGetEnabledPolicy(toolName, out var policy))
             return RiskInfo.FromRiskLevel(policy.Risk);
 
-        return RiskInfo.FromRiskLevel(RiskLevel.Medium); // conservative default
+        return RiskInfo.FromRiskLevel(RiskLevel.Medium);
     }
 
     private static IEnumerable<string> SplitIntoChunks(string text, int chunkSize)

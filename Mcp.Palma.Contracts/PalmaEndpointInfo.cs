@@ -1,4 +1,6 @@
-﻿namespace Mcp.Palma.Contracts;
+﻿using System.Collections.Generic;
+
+namespace Mcp.Palma.Contracts;
 
 /// <summary>
 /// Lightweight DTO describing one Palma endpoint — no Palma-specific types,

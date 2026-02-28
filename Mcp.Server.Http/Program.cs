@@ -2,7 +2,9 @@ using Mcp.Agent;
 using Mcp.Governance;
 using Mcp.Governance.Execution;
 using Mcp.Http;
+using Mcp.Palma.Contracts;
 using Mcp.Swagger;
+using Microsoft.Extensions.Configuration;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -16,6 +18,7 @@ builder.Services
     .AddAnthropic(builder.Configuration)
     .AddOpenAi(builder.Configuration)
     .AddGemini(builder.Configuration)
+    .AddSwaggerAgentToolSource()
     .AddAgent()
     .AddAgentCors()
     .AddControllers();

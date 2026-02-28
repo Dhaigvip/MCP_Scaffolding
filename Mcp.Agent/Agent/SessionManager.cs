@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using Mcp.Palma;
+using Mcp.Palma.Contracts;
 
 namespace Mcp.Agent;
 

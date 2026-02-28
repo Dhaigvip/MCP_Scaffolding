@@ -12,12 +12,12 @@ namespace Mcp.Http.Controllers;
 [Route("api/mcp-admin")]
 public sealed class McpAdminController : ControllerBase
 {
-    private readonly ToolRefreshService  _refresh;
+    private readonly ToolRefreshService _refresh;
     private readonly DynamicToolRegistry _registry;
 
     public McpAdminController(ToolRefreshService refresh, DynamicToolRegistry registry)
     {
-        _refresh  = refresh;
+        _refresh = refresh;
         _registry = registry;
     }
 
@@ -37,13 +37,13 @@ public sealed class McpAdminController : ControllerBase
 
             return Ok(new RefreshToolsResponse
             {
-                Success       = true,
-                Changed       = result.Changed,
-                TotalActive   = result.TotalActive,
-                Added         = result.Added,
-                Removed       = result.Removed,
-                ActiveTools   = _registry.All.Keys.Order().ToList(),
-                RefreshedAt   = _refresh.LastRefreshedAt
+                Success = true,
+                Changed = result.Changed,
+                TotalActive = result.TotalActive,
+                Added = result.Added,
+                Removed = result.Removed,
+                ActiveTools = _registry.All.Keys.Order().ToList(),
+                RefreshedAt = _refresh.LastRefreshedAt
             });
         }
         catch (Exception ex)
@@ -51,7 +51,7 @@ public sealed class McpAdminController : ControllerBase
             return StatusCode(500, new RefreshToolsResponse
             {
                 Success = false,
-                Error   = ex.Message
+                Error = ex.Message
             });
         }
     }
@@ -68,19 +68,19 @@ public sealed class McpAdminController : ControllerBase
             .OrderBy(kvp => kvp.Key)
             .Select(kvp => new ToolSummary
             {
-                Name        = kvp.Value.ToolName,
-                Method      = kvp.Value.HttpMethod,
-                Path        = kvp.Value.PathTemplate,
+                Name = kvp.Value.ToolName,
+                Method = kvp.Value.HttpMethod,
+                Path = kvp.Value.PathTemplate,
                 Description = kvp.Value.Description,
-                ParamCount  = kvp.Value.InputSchema.Properties.Count
+                ParamCount = kvp.Value.InputSchema.Properties.Count
             })
             .ToList();
 
         return Ok(new ToolStatusResponse
         {
-            TotalActive   = tools.Count,
+            TotalActive = tools.Count,
             LastRefreshed = _refresh.LastRefreshedAt,
-            Tools         = tools
+            Tools = tools
         });
     }
 }
@@ -89,28 +89,28 @@ public sealed class McpAdminController : ControllerBase
 
 public sealed class RefreshToolsResponse
 {
-    public bool Success           { get; init; }
-    public bool Changed           { get; init; }
-    public int TotalActive        { get; init; }
-    public List<string> Added     { get; init; } = [];
-    public List<string> Removed   { get; init; } = [];
+    public bool Success { get; init; }
+    public bool Changed { get; init; }
+    public int TotalActive { get; init; }
+    public List<string> Added { get; init; } = [];
+    public List<string> Removed { get; init; } = [];
     public List<string> ActiveTools { get; init; } = [];
     public DateTimeOffset RefreshedAt { get; init; }
-    public string? Error          { get; init; }
+    public string? Error { get; init; }
 }
 
 public sealed class ToolStatusResponse
 {
-    public int TotalActive            { get; init; }
+    public int TotalActive { get; init; }
     public DateTimeOffset LastRefreshed { get; init; }
-    public List<ToolSummary> Tools    { get; init; } = [];
+    public List<ToolSummary> Tools { get; init; } = [];
 }
 
 public sealed class ToolSummary
 {
-    public string Name        { get; init; } = string.Empty;
-    public string Method      { get; init; } = string.Empty;
-    public string Path        { get; init; } = string.Empty;
+    public string Name { get; init; } = string.Empty;
+    public string Method { get; init; } = string.Empty;
+    public string Path { get; init; } = string.Empty;
     public string Description { get; init; } = string.Empty;
-    public int ParamCount     { get; init; }
+    public int ParamCount { get; init; }
 }

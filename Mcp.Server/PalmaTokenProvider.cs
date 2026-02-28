@@ -1,4 +1,9 @@
+using System;
+using System.Collections.Generic;
+using System.Net.Http;
 using System.Text.Json;
+using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 
 namespace Mcp.Palma;
@@ -28,9 +33,9 @@ public sealed class PalmaTokenProvider
         PalmaRemoteMcpOptions options,
         ILogger<PalmaTokenProvider> logger)
     {
-        _http    = http;
+        _http = http;
         _options = options;
-        _logger  = logger;
+        _logger = logger;
     }
 
     /// <summary>
@@ -52,17 +57,17 @@ public sealed class PalmaTokenProvider
 
             using var form = new FormUrlEncodedContent(new Dictionary<string, string>
             {
-                ["grant_type"]    = "client_credentials",
-                ["client_id"]     = _options.ClientId,
+                ["grant_type"] = "client_credentials",
+                ["client_id"] = _options.ClientId,
                 ["client_secret"] = _options.ClientSecret,
-                ["scope"]         = _options.Scope
+                ["scope"] = _options.Scope
             });
 
             using var response = await _http.PostAsync(_options.TokenEndpoint, form, ct);
             response.EnsureSuccessStatusCode();
 
             var json = await response.Content.ReadAsStringAsync(ct);
-            using var doc  = JsonDocument.Parse(json);
+            using var doc = JsonDocument.Parse(json);
             var root = doc.RootElement;
 
             _cachedToken = root.GetProperty("access_token").GetString()
@@ -70,7 +75,7 @@ public sealed class PalmaTokenProvider
                     $"Token response from '{_options.TokenEndpoint}' is missing 'access_token'.");
 
             var expiresIn = root.TryGetProperty("expires_in", out var exp) ? exp.GetInt32() : 3600;
-            _tokenExpiry  = DateTimeOffset.UtcNow.AddSeconds(expiresIn);
+            _tokenExpiry = DateTimeOffset.UtcNow.AddSeconds(expiresIn);
 
             _logger.LogInformation("Bearer token acquired, expires in {ExpiresIn}s.", expiresIn);
             return _cachedToken;

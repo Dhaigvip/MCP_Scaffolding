@@ -10,9 +10,9 @@ namespace Mcp.Swagger;
 /// </summary>
 public sealed class ToolRefreshService
 {
-    private readonly IToolLoader         _loader;
+    private readonly IToolLoader _loader;
     private readonly DynamicToolRegistry _registry;
-    private readonly IExposureService    _exposure;
+    private readonly IExposureService _exposure;
     private readonly ILogger<ToolRefreshService> _logger;
 
     // Track when the last refresh happened
@@ -26,10 +26,10 @@ public sealed class ToolRefreshService
         IExposureService exposure,
         ILogger<ToolRefreshService> logger)
     {
-        _loader   = loader;
+        _loader = loader;
         _registry = registry;
         _exposure = exposure;
-        _logger   = logger;
+        _logger = logger;
     }
 
     /// <summary>
@@ -41,7 +41,7 @@ public sealed class ToolRefreshService
     {
         _logger.LogInformation("Refreshing MCP tools...");
 
-        var tools  = await _loader.LoadAsync(ct);
+        var tools = await _loader.LoadAsync(ct);
         var result = _registry.Initialize(tools, _exposure);
 
         _lastRefreshedAt = DateTimeOffset.UtcNow;

@@ -1,4 +1,7 @@
-﻿namespace Mcp.Governance.Execution;
+﻿using System.Threading;
+using System.Threading.Tasks;
+
+namespace Mcp.Governance.Execution;
 
 public interface IToolHandler<TArgs, TResult>
 {

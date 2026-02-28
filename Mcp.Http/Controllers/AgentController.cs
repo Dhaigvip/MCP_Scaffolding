@@ -4,6 +4,7 @@ using System.Text.Json;
 using System.Threading.Channels;
 using Mcp.Agent;
 using Mcp.Palma;
+using Mcp.Palma.Contracts;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
@@ -265,11 +266,11 @@ public sealed class AgentController : ControllerBase
                 if (ws.State != WebSocketState.Open) break;
                 try
                 {
-                    var json  = JsonSerializer.Serialize(evt, evt.GetType(), JsonOptions);
+                    var json = JsonSerializer.Serialize(evt, evt.GetType(), JsonOptions);
                     var bytes = Encoding.UTF8.GetBytes(json);
                     await ws.SendAsync(bytes, WebSocketMessageType.Text, endOfMessage: true, ct);
                 }
-                catch (WebSocketException)         { break; }
+                catch (WebSocketException) { break; }
                 catch (OperationCanceledException) { break; }
             }
         }

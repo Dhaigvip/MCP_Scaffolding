@@ -6,6 +6,8 @@ using ModelContextProtocol;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 using System.Text.Json;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace Mcp.Swagger;
 

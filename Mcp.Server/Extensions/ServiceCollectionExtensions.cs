@@ -12,7 +12,8 @@ public static class ServiceCollectionExtensions
 
     /// <summary>
     /// Registers the Swagger → MCP pipeline: fetches swagger.json on startup and
-    /// exposes operations as MCP tools.  Pair with <see cref="AddMcpServerHandlers"/>.
+    /// exposes operations as MCP tools via a static DynamicToolRegistry.
+    /// Pair with <see cref="AddMcpServerHandlers"/> (Swagger handler).
     /// </summary>
     public static IServiceCollection AddSwaggerMcp(
         this IServiceCollection services,
@@ -41,14 +42,14 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IToolLoader>(sp =>
         {
             var factory = sp.GetRequiredService<IHttpClientFactory>();
-            var logger  = sp.GetRequiredService<ILogger<SwaggerToolLoader>>();
+            var logger = sp.GetRequiredService<ILogger<SwaggerToolLoader>>();
             return new SwaggerToolLoader(factory.CreateClient("SwaggerLoader"), options, logger);
         });
 
         services.AddSingleton<IToolInvoker>(sp =>
         {
             var factory = sp.GetRequiredService<IHttpClientFactory>();
-            var logger  = sp.GetRequiredService<ILogger<SwaggerToolInvoker>>();
+            var logger = sp.GetRequiredService<ILogger<SwaggerToolInvoker>>();
             return new SwaggerToolInvoker(factory.CreateClient("SwaggerInvoker"), logger);
         });
 
@@ -60,13 +61,17 @@ public static class ServiceCollectionExtensions
     /// <summary>
     /// Registers the Palma → MCP in-process pipeline.
     ///
-    /// Prerequisites — the Palma web API must register before calling this:
+    /// Tools are NOT preloaded at startup.  Instead, <see cref="PalmaMcpToolHandler"/>
+    /// builds the tool list on every <c>tools/list</c> request using the session's
+    /// version — so each session sees exactly its API version's tools.
+    ///
+    /// Prerequisites — register before calling this:
     ///   <list type="bullet">
-    ///     <item><see cref="IPalmaEndpointSource"/> — provides the endpoint list for tool loading.</item>
-    ///     <item><see cref="IPalmaToolInvoker"/>    — executes tool calls in-process (no HTTP).</item>
+    ///     <item><see cref="IPalmaEndpointSource"/> — endpoint discovery (in-process).</item>
+    ///     <item><see cref="IPalmaToolInvoker"/>    — tool execution (in-process, no HTTP).</item>
     ///   </list>
     ///
-    /// Pair with <see cref="AddMcpServerHandlers"/>.
+    /// Pair with <see cref="AddPalmaMcpServerHandlers"/> (Palma handler).
     /// </summary>
     public static IServiceCollection AddPalmaMcp(
         this IServiceCollection services,
@@ -79,21 +84,20 @@ public static class ServiceCollectionExtensions
 
         services.AddSingleton(options);
 
-        services.AddSingleton<IToolLoader>(sp =>
-        {
-            var source = sp.GetRequiredService<IPalmaEndpointSource>();
-            var logger = sp.GetRequiredService<ILogger<PalmaToolLoader>>();
-            return new PalmaToolLoader(source, options, logger);
-        });
-
-        // PalmaToolInvoker adapts IToolInvoker → IPalmaToolInvoker (in-process, no HTTP)
+        // PalmaToolInvoker adapts IToolInvoker → IPalmaToolInvoker (used by AgentService)
         services.AddSingleton<IToolInvoker>(sp =>
         {
             var inProcess = sp.GetRequiredService<IPalmaToolInvoker>();
             return new PalmaToolInvoker(inProcess);
         });
 
-        return services.AddMcpCore();
+        // PalmaMcpToolHandler handles the MCP protocol (tools/list + tools/call) per session
+        services.AddScoped<PalmaMcpToolHandler>();
+
+        // No IToolLoader, no DynamicToolRegistry, no SwaggerMcpStartupService —
+        // Palma tools are resolved dynamically per session in PalmaMcpToolHandler.
+
+        return services;
     }
 
     // ── Palma remote (separate-process) pipeline ──────────────────────────────
@@ -107,7 +111,7 @@ public static class ServiceCollectionExtensions
     ///      and  AuthScheme: {SchemeId}.
     ///
     /// Tool discovery calls: GET {ApiBaseUrl}/api/mcp/endpoints  (configurable via EndpointsPath).
-    /// The Palma web API must expose this endpoint — see IPalmaEndpointSource.
+    /// The Palma web API must expose this endpoint — see McpEndpointsController.
     ///
     /// Pair with <see cref="AddMcpServerHandlers"/>.
     /// </summary>
@@ -122,34 +126,32 @@ public static class ServiceCollectionExtensions
 
         services.AddSingleton(options);
 
-        // Shared HTTP client for both token acquisition and API calls
         services.AddHttpClient("PalmaRemote", c =>
         {
             c.BaseAddress = new Uri(options.ApiBaseUrl);
-            c.Timeout     = TimeSpan.FromSeconds(30);
+            c.Timeout = TimeSpan.FromSeconds(30);
         });
 
-        // Token provider — singleton so the cached token is shared across all requests
         services.AddSingleton<PalmaTokenProvider>(sp =>
         {
             var factory = sp.GetRequiredService<IHttpClientFactory>();
-            var logger  = sp.GetRequiredService<ILogger<PalmaTokenProvider>>();
+            var logger = sp.GetRequiredService<ILogger<PalmaTokenProvider>>();
             return new PalmaTokenProvider(factory.CreateClient("PalmaRemote"), options, logger);
         });
 
         services.AddSingleton<IToolLoader>(sp =>
         {
             var factory = sp.GetRequiredService<IHttpClientFactory>();
-            var tokens  = sp.GetRequiredService<PalmaTokenProvider>();
-            var logger  = sp.GetRequiredService<ILogger<PalmaRemoteToolLoader>>();
+            var tokens = sp.GetRequiredService<PalmaTokenProvider>();
+            var logger = sp.GetRequiredService<ILogger<PalmaRemoteToolLoader>>();
             return new PalmaRemoteToolLoader(factory.CreateClient("PalmaRemote"), options, tokens, logger);
         });
 
         services.AddSingleton<IToolInvoker>(sp =>
         {
             var factory = sp.GetRequiredService<IHttpClientFactory>();
-            var tokens  = sp.GetRequiredService<PalmaTokenProvider>();
-            var logger  = sp.GetRequiredService<ILogger<PalmaRemoteToolInvoker>>();
+            var tokens = sp.GetRequiredService<PalmaTokenProvider>();
+            var logger = sp.GetRequiredService<ILogger<PalmaRemoteToolInvoker>>();
             return new PalmaRemoteToolInvoker(factory.CreateClient("PalmaRemote"), options, tokens, logger);
         });
 
@@ -158,27 +160,59 @@ public static class ServiceCollectionExtensions
 
     // ── MCP server handlers ───────────────────────────────────────────────────
 
+    /// <summary>
+    /// Wires <see cref="DynamicMcpToolHandler"/> (Swagger/remote — static registry) into the
+    /// MCP SDK.  Use this with <see cref="AddSwaggerMcp"/> or <see cref="AddPalmaMcpRemote"/>.
+    /// </summary>
     public static IServiceCollection AddMcpServerHandlers(this IServiceCollection services)
     {
         services.AddMcpServer()
             .WithHttpTransport()
             .WithListToolsHandler(async (ctx, ct) =>
             {
-                using var scope = ctx.Server.Services.CreateScope();
-                var handler = scope.ServiceProvider.GetRequiredService<DynamicMcpToolHandler>();
-                return await handler.ListToolsAsync(ctx, ct);
+                using var scope = ctx.Server.Services!.CreateScope();
+                return await scope.ServiceProvider
+                    .GetRequiredService<DynamicMcpToolHandler>()
+                    .ListToolsAsync(ctx, ct);
             })
             .WithCallToolHandler(async (ctx, ct) =>
             {
-                using var scope = ctx.Server.Services.CreateScope();
-                var handler = scope.ServiceProvider.GetRequiredService<DynamicMcpToolHandler>();
-                return await handler.CallToolAsync(ctx, ct);
+                using var scope = ctx.Server.Services!.CreateScope();
+                return await scope.ServiceProvider
+                    .GetRequiredService<DynamicMcpToolHandler>()
+                    .CallToolAsync(ctx, ct);
             });
 
         return services;
     }
 
-    // ── Shared registrations ──────────────────────────────────────────────────
+    /// <summary>
+    /// Wires <see cref="PalmaMcpToolHandler"/> (Palma in-process — dynamic, version-aware)
+    /// into the MCP SDK.  Use this with <see cref="AddPalmaMcp"/>.
+    /// </summary>
+    public static IServiceCollection AddPalmaMcpServerHandlers(this IServiceCollection services)
+    {
+        services.AddMcpServer()
+            .WithHttpTransport()
+            .WithListToolsHandler(async (ctx, ct) =>
+            {
+                using var scope = ctx.Server.Services!.CreateScope();
+                return await scope.ServiceProvider
+                    .GetRequiredService<PalmaMcpToolHandler>()
+                    .ListToolsAsync(ctx, ct);
+            })
+            .WithCallToolHandler(async (ctx, ct) =>
+            {
+                using var scope = ctx.Server.Services!.CreateScope();
+                return await scope.ServiceProvider
+                    .GetRequiredService<PalmaMcpToolHandler>()
+                    .CallToolAsync(ctx, ct);
+            });
+
+        return services;
+    }
+
+    // ── Shared (Swagger / Remote) ─────────────────────────────────────────────
 
     private static IServiceCollection AddMcpCore(this IServiceCollection services)
     {

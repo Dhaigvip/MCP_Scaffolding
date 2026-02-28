@@ -1,4 +1,6 @@
-﻿namespace Mcp.Palma.Contracts;
+﻿using System.Collections.Generic;
+
+namespace Mcp.Palma.Contracts;
 
 /// <summary>
 /// Implemented by the host Palma web API to expose its registered endpoints to
@@ -8,5 +10,5 @@
 /// </summary>
 public interface IPalmaEndpointSource
 {
-    IEnumerable<PalmaEndpointInfo> GetEndpoints();
+    IEnumerable<PalmaEndpointInfo> GetEndpoints(string version);
 }

@@ -17,7 +17,7 @@ public sealed class SwaggerMcpStartupService : IHostedService
         ILogger<SwaggerMcpStartupService> logger)
     {
         _refresh = refresh;
-        _logger  = logger;
+        _logger = logger;
     }
 
     public async Task StartAsync(CancellationToken ct)

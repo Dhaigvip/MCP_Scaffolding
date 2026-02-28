@@ -1,6 +1,7 @@
 using System.Text;
 using System.Text.Json;
 using Mcp.Palma;
+using Mcp.Palma.Contracts;
 using Microsoft.Extensions.Logging;
 
 namespace Mcp.Swagger;

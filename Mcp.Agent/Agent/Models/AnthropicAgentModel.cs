@@ -53,7 +53,7 @@ public sealed class AnthropicAgentModel : IAgentModel
             }
         }
 
-        var stopIsToolUse = response.StopReason.Raw() == "tool_use";
+        var stopIsToolUse = response.StopReason!.Raw() == "tool_use";
         hasToolCalls = hasToolCalls || stopIsToolUse;
 
         return new AgentModelResponse

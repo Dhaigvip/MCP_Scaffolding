@@ -1,4 +1,6 @@
-﻿namespace Mcp.Governance.Execution;
+﻿using System;
+
+namespace Mcp.Governance.Execution;
 
 public sealed class McpErrorEnvelope
 {

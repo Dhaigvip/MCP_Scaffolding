@@ -2,6 +2,7 @@ using Anthropic;
 using Mcp.Agent.ModelAbstraction;
 using Mcp.Agent.Models;
 using Mcp.Agent.Routing;
+using Mcp.Agent.ToolSource;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using System.Net.Http.Headers;
@@ -15,6 +16,27 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<SessionManager>();
         services.AddSingleton<IAgentModelRouter, AgentModelRouter>();
         services.AddScoped<AgentService>();
+        return services;
+    }
+
+    /// <summary>
+    /// Registers <see cref="PalmaAgentToolSource"/> as <see cref="IAgentToolSource"/>.
+    /// Use with <c>AddPalmaMcp()</c> — tools are resolved dynamically per session.
+    /// </summary>
+    public static IServiceCollection AddPalmaAgentToolSource(this IServiceCollection services)
+    {
+        services.AddSingleton<IAgentToolSource, PalmaAgentToolSource>();
+        return services;
+    }
+
+    /// <summary>
+    /// Registers <see cref="RegistryAgentToolSource"/> as <see cref="IAgentToolSource"/>.
+    /// Use with <c>AddSwaggerMcp()</c> or <c>AddPalmaMcpRemote()</c> — tools come from
+    /// the static <c>DynamicToolRegistry</c> populated at startup.
+    /// </summary>
+    public static IServiceCollection AddSwaggerAgentToolSource(this IServiceCollection services)
+    {
+        services.AddSingleton<IAgentToolSource, RegistryAgentToolSource>();
         return services;
     }
 

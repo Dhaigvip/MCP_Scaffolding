@@ -1,4 +1,9 @@
+using System;
+using System.Collections.Generic;
+using System.Net.Http;
 using System.Text.Json;
+using System.Threading;
+using System.Threading.Tasks;
 using Mcp.Palma.Contracts;
 using Mcp.Swagger;
 using Microsoft.Extensions.Logging;
@@ -31,10 +36,10 @@ public sealed class PalmaRemoteToolLoader : IToolLoader
         PalmaTokenProvider tokens,
         ILogger<PalmaRemoteToolLoader> logger)
     {
-        _http    = http;
+        _http = http;
         _options = options;
-        _tokens  = tokens;
-        _logger  = logger;
+        _tokens = tokens;
+        _logger = logger;
     }
 
     public async Task<List<SwaggerToolDescriptor>> LoadAsync(CancellationToken ct = default)
@@ -42,7 +47,7 @@ public sealed class PalmaRemoteToolLoader : IToolLoader
         _logger.LogInformation("Loading Palma endpoints from {Base}{Path}",
             _options.ApiBaseUrl, _options.EndpointsPath);
 
-        var token   = await _tokens.GetTokenAsync(ct);
+        var token = await _tokens.GetTokenAsync(ct);
         var request = new HttpRequestMessage(HttpMethod.Get, _options.EndpointsPath);
         request.Headers.Authorization =
             new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
@@ -51,7 +56,7 @@ public sealed class PalmaRemoteToolLoader : IToolLoader
         using var response = await _http.SendAsync(request, ct);
         response.EnsureSuccessStatusCode();
 
-        var json      = await response.Content.ReadAsStringAsync(ct);
+        var json = await response.Content.ReadAsStringAsync(ct);
         var endpoints = JsonSerializer.Deserialize<List<PalmaEndpointInfo>>(json, JsonOptions) ?? [];
 
         var contextParams = new HashSet<string>(

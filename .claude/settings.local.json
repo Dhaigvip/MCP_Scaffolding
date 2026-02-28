@@ -5,7 +5,9 @@
       "Bash(dotnet build)",
       "Bash(dotnet build Mcp.Server.Http/Mcp.Server.Http.csproj)",
       "Bash(dir \"C:\\\\src\\\\Palma_MCP\" /b)",
-      "Bash(dotnet build McpServer.sln --no-restore -v quiet)"
+      "Bash(dotnet build McpServer.sln --no-restore -v quiet)",
+      "Bash(ls -la /c/src/PalmaServer_NodeDiagram/*.sln)",
+      "Bash(xargs grep -l \"AgentTool\\\\|AgentMessage\\\\|AgentRole\\\\|AgentModelRequest\")"
     ]
   }
 }

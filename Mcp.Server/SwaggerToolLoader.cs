@@ -1,4 +1,10 @@
-﻿using System.Text.Json;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Net.Http;
+using System.Text.Json;
+using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 
 namespace Mcp.Swagger;
@@ -11,9 +17,9 @@ public sealed class SwaggerToolLoader : IToolLoader
 
     public SwaggerToolLoader(HttpClient http, SwaggerMcpOptions options, ILogger<SwaggerToolLoader> logger)
     {
-        _http    = http;
+        _http = http;
         _options = options;
-        _logger  = logger;
+        _logger = logger;
     }
 
     public async Task<List<SwaggerToolDescriptor>> LoadAsync(CancellationToken ct = default)
@@ -25,7 +31,7 @@ public sealed class SwaggerToolLoader : IToolLoader
         using var doc = JsonDocument.Parse(json);
 
         // Keep root alive for $ref resolution — clone it so we own the memory
-        var root  = doc.RootElement.Clone();
+        var root = doc.RootElement.Clone();
         var tools = new List<SwaggerToolDescriptor>();
 
         if (!root.TryGetProperty("paths", out var paths))
@@ -41,28 +47,28 @@ public sealed class SwaggerToolLoader : IToolLoader
             foreach (var methodProp in pathProp.Value.EnumerateObject())
             {
                 var httpMethod = methodProp.Name.ToUpperInvariant();
-                var operation  = methodProp.Value;
+                var operation = methodProp.Value;
 
                 if (!IsSupportedMethod(httpMethod)) continue;
 
-                var toolName    = BuildToolName(httpMethod, pathTemplate, operation);
+                var toolName = BuildToolName(httpMethod, pathTemplate, operation);
                 var description = GetString(operation, "summary")
                                ?? GetString(operation, "description")
                                ?? toolName;
 
                 var parameters = ParseParameters(operation);
-                var body       = ParseBody(operation, root);
-                var schema     = BuildInputSchema(parameters, body);
+                var body = ParseBody(operation, root);
+                var schema = BuildInputSchema(parameters, body);
 
                 tools.Add(new SwaggerToolDescriptor
                 {
-                    ToolName     = toolName,
-                    Description  = description,
-                    HttpMethod   = httpMethod,
+                    ToolName = toolName,
+                    Description = description,
+                    HttpMethod = httpMethod,
                     PathTemplate = pathTemplate,
-                    Parameters   = parameters,
-                    Body         = body,
-                    InputSchema  = schema
+                    Parameters = parameters,
+                    Body = body,
+                    InputSchema = schema
                 });
 
                 _logger.LogInformation(
@@ -109,17 +115,17 @@ public sealed class SwaggerToolLoader : IToolLoader
             if (inVal == "body") continue;
 
             var schema = p.TryGetProperty("schema", out var s) ? s : default;
-            var type   = schema.ValueKind == JsonValueKind.Object
+            var type = schema.ValueKind == JsonValueKind.Object
                 ? GetString(schema, "type") ?? "string"
                 : "string";
 
             result.Add(new SwaggerParameterDescriptor
             {
-                Name        = GetString(p, "name") ?? "param",
-                In          = inVal,
-                Type        = type,
+                Name = GetString(p, "name") ?? "param",
+                In = inVal,
+                Type = type,
                 Description = GetString(p, "description"),
-                Required    = p.TryGetProperty("required", out var req) && req.GetBoolean()
+                Required = p.TryGetProperty("required", out var req) && req.GetBoolean()
             });
         }
 
@@ -133,7 +139,7 @@ public sealed class SwaggerToolLoader : IToolLoader
         if (!operation.TryGetProperty("requestBody", out var rb)) return null;
 
         var required = rb.TryGetProperty("required", out var req) && req.GetBoolean();
-        var desc     = GetString(rb, "description") ?? "Request body";
+        var desc = GetString(rb, "description") ?? "Request body";
 
         if (!rb.TryGetProperty("content", out var content)) return null;
         if (!content.TryGetProperty("application/json", out var jsonContent)) return null;
@@ -145,8 +151,8 @@ public sealed class SwaggerToolLoader : IToolLoader
         return new SwaggerBodyDescriptor
         {
             Description = desc,
-            Required    = required,
-            Schema      = resolvedSchema
+            Required = required,
+            Schema = resolvedSchema
         };
     }
 
@@ -163,7 +169,7 @@ public sealed class SwaggerToolLoader : IToolLoader
         var refPath = refProp.GetString();
         if (string.IsNullOrWhiteSpace(refPath)) return schema;
 
-        var parts   = refPath.TrimStart('#', '/').Split('/');
+        var parts = refPath.TrimStart('#', '/').Split('/');
         var current = root;
 
         foreach (var part in parts)
@@ -181,7 +187,7 @@ public sealed class SwaggerToolLoader : IToolLoader
         List<SwaggerParameterDescriptor> parameters,
         SwaggerBodyDescriptor? body)
     {
-        var props    = new Dictionary<string, JsonSchemaProperty>();
+        var props = new Dictionary<string, JsonSchemaProperty>();
         var required = new List<string>();
 
         foreach (var p in parameters)
@@ -206,7 +212,7 @@ public sealed class SwaggerToolLoader : IToolLoader
 
                     props[prop.Name] = new JsonSchemaProperty
                     {
-                        Type        = propType,
+                        Type = propType,
                         Description = propDesc
                     };
                 }

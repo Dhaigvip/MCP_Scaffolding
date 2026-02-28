@@ -1,4 +1,6 @@
-﻿namespace Mcp.Governance.Policy;
+﻿using System;
+
+namespace Mcp.Governance.Policy;
 
 /// <summary>
 /// Per-tool policy declared in mcp_exposure.json.

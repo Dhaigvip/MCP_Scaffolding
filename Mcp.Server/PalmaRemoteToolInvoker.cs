@@ -1,4 +1,10 @@
+using System;
+using System.Collections.Generic;
+using System.Net.Http;
 using System.Text.Json;
+using System.Threading;
+using System.Threading.Tasks;
+using Mcp.Palma.Contracts;
 using Mcp.Swagger;
 using Microsoft.Extensions.Logging;
 
@@ -30,10 +36,10 @@ public sealed class PalmaRemoteToolInvoker : IToolInvoker
         PalmaTokenProvider tokens,
         ILogger<PalmaRemoteToolInvoker> logger)
     {
-        _http    = http;
+        _http = http;
         _options = options;
-        _tokens  = tokens;
-        _logger  = logger;
+        _tokens = tokens;
+        _logger = logger;
     }
 
     public async Task<string> InvokeAsync(
@@ -48,13 +54,13 @@ public sealed class PalmaRemoteToolInvoker : IToolInvoker
                 $"PalmaContext is required to invoke Palma tool '{tool.ToolName}'. " +
                 "Ensure the client passes version, org, ms, and branch at session creation.");
 
-        var url   = BuildUrl(tool, arguments, palmaContext);
+        var url = BuildUrl(tool, arguments, palmaContext);
         var token = await _tokens.GetTokenAsync(ct);
 
         var request = new HttpRequestMessage(HttpMethod.Post, url);
         request.Headers.Authorization =
             new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
-        request.Headers.TryAddWithoutValidation("AuthScheme",       _options.SchemeId);
+        request.Headers.TryAddWithoutValidation("AuthScheme", _options.SchemeId);
         request.Headers.TryAddWithoutValidation("X-Correlation-Id", correlationId);
 
         _logger.LogDebug("Palma remote tool {Tool} → POST {Url}", tool.ToolName, url);
@@ -69,9 +75,9 @@ public sealed class PalmaRemoteToolInvoker : IToolInvoker
 
             return JsonSerializer.Serialize(new
             {
-                error      = true,
+                error = true,
                 statusCode = (int)response.StatusCode,
-                message    = body
+                message = body
             });
         }
 

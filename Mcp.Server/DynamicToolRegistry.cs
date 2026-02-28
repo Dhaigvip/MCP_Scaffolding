@@ -1,5 +1,6 @@
 ﻿using Mcp.Governance.Exposure;
 using Microsoft.Extensions.Logging;
+using System.Collections.Generic;
 
 namespace Mcp.Swagger;
 
@@ -54,15 +55,15 @@ public sealed class DynamicToolRegistry
         }
 
         var current = _tools;
-        var added   = newTools.Keys.Except(current.Keys).ToList();
+        var added = newTools.Keys.Except(current.Keys).ToList();
         var removed = current.Keys.Except(newTools.Keys).ToList();
 
         var result = new RegistryRefreshResult
         {
             TotalActive = newTools.Count,
-            Added       = added,
-            Removed     = removed,
-            Changed     = added.Count > 0 || removed.Count > 0
+            Added = added,
+            Removed = removed,
+            Changed = added.Count > 0 || removed.Count > 0
         };
 
         if (!result.Changed && current.Count > 0)
@@ -90,8 +91,8 @@ public sealed class DynamicToolRegistry
 
 public sealed class RegistryRefreshResult
 {
-    public bool Changed       { get; init; }
-    public int TotalActive    { get; init; }
-    public List<string> Added   { get; init; } = [];
+    public bool Changed { get; init; }
+    public int TotalActive { get; init; }
+    public List<string> Added { get; init; } = [];
     public List<string> Removed { get; init; } = [];
 }
