@@ -1,4 +1,8 @@
-using Mcp.Server.Http.Extensions;
+using Mcp.Agent;
+using Mcp.Governance;
+using Mcp.Governance.Execution;
+using Mcp.Server.Http;
+using Mcp.Swagger;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -7,6 +11,7 @@ builder.Services.AddHttpContextAccessor();
 builder.Services
     .AddSwaggerMcp(builder.Configuration)
     .AddGovernance(builder.Configuration)
+    .AddScoped<ICorrelationIdAccessor, HttpContextCorrelationIdAccessor>()
     .AddMcpServerHandlers()
     .AddAnthropic(builder.Configuration)
     .AddOpenAi(builder.Configuration)

@@ -1,6 +1,6 @@
-﻿namespace Mcp.Server.Http.Extensions;
+namespace Mcp.Server.Http;
 
-public static partial class ServiceCollectionExtensions
+public static class CorsServiceCollectionExtensions
 {
     private const string AgentCorsPolicyName = "AgentPolicy";
 

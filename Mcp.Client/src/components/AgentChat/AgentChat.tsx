@@ -18,9 +18,9 @@ import type { AgentEvent, Protocol } from "./types";
 import { uid } from "./utils/uid";
 
 import { useAgentMessages } from "./hooks/useAgentMessages";
-import { useAgentSession }  from "./hooks/useAgentSession";
+import { useAgentSession } from "./hooks/useAgentSession";
 import { useAgentWebSocket } from "./hooks/useAgentWebSocket";
-import { useAgentSse }      from "./hooks/useAgentSse";
+import { useAgentSse } from "./hooks/useAgentSse";
 import { useHitlResolution } from "./hooks/useHitlResolution";
 
 import { MessageBubble } from "./components/MessageBubble";
@@ -39,22 +39,25 @@ interface AgentChatProps {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export function AgentChat({
-    apiBase         = "",
-    placeholder     = "Ask the agent anything…",
-    className       = "",
+    apiBase = "",
+    placeholder = "Ask the agent anything…",
+    className = "",
     defaultProtocol = "ws"
 }: AgentChatProps) {
-
-    const [input,    setInput]    = useState("");
+    const [input, setInput] = useState("");
     const [protocol, setProtocol] = useState<Protocol>(defaultProtocol);
     const bottomRef = useRef<HTMLDivElement>(null);
 
     // ── Core message state + event dispatcher ─────────────────────────────────
     const {
-        messages, setMessages,
-        isStreaming, setIsStreaming,
-        currentAsstMsgIdRef, pendingApprovalRef,
-        updateMsg, dispatchAgentEvent
+        messages,
+        setMessages,
+        isStreaming,
+        setIsStreaming,
+        currentAsstMsgIdRef,
+        pendingApprovalRef,
+        updateMsg,
+        dispatchAgentEvent
     } = useAgentMessages();
 
     // ── Session lifecycle ─────────────────────────────────────────────────────
@@ -62,9 +65,14 @@ export function AgentChat({
 
     // ── WebSocket lifecycle ───────────────────────────────────────────────────
     const { wsRef, wsConnected } = useAgentWebSocket({
-        apiBase, sessionId, protocol,
-        currentAsstMsgIdRef, dispatchAgentEvent,
-        setIsStreaming, updateMsg, setMessages
+        apiBase,
+        sessionId,
+        protocol,
+        currentAsstMsgIdRef,
+        dispatchAgentEvent,
+        setIsStreaming,
+        updateMsg,
+        setMessages
     });
 
     // ── SSE abort ref ─────────────────────────────────────────────────────────
@@ -72,8 +80,12 @@ export function AgentChat({
 
     // ── HITL approval ─────────────────────────────────────────────────────────
     const { resolveHitl } = useHitlResolution({
-        protocol, sessionId, apiBase,
-        wsRef, pendingApprovalRef, updateMsg
+        protocol,
+        sessionId,
+        apiBase,
+        wsRef,
+        pendingApprovalRef,
+        updateMsg
     });
 
     // ── Auto-scroll ───────────────────────────────────────────────────────────
@@ -94,12 +106,12 @@ export function AgentChat({
         setIsStreaming(true);
 
         // User bubble
-        setMessages(prev => [...prev, { id: uid(), role: "user", text: userText }]);
+        setMessages((prev) => [...prev, { id: uid(), role: "user", text: userText }]);
 
         // Assistant placeholder bubble — ID tracked so events land in the right bubble
         const asstMsgId = uid();
         currentAsstMsgIdRef.current = asstMsgId;
-        setMessages(prev => [
+        setMessages((prev) => [
             ...prev,
             { id: asstMsgId, role: "assistant", text: "", isStreaming: true, toolCalls: [] }
         ]);
@@ -107,22 +119,21 @@ export function AgentChat({
         if (protocol === "ws") {
             // WebSocket path — responses arrive asynchronously via ws.onmessage
             wsRef.current!.send(JSON.stringify({ type: "chat", message: userText }));
-
         } else {
             // SSE path
             sseAbortRef.current = new AbortController();
             try {
                 const resp = await fetch(`${apiBase}/api/agent/chat`, {
-                    method:  "POST",
+                    method: "POST",
                     headers: { "Content-Type": "application/json", Accept: "text/event-stream" },
-                    body:    JSON.stringify({ sessionId, message: userText }),
-                    signal:  sseAbortRef.current.signal
+                    body: JSON.stringify({ sessionId, message: userText }),
+                    signal: sseAbortRef.current.signal
                 });
                 if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
 
-                const reader  = resp.body!.getReader();
+                const reader = resp.body!.getReader();
                 const decoder = new TextDecoder();
-                let   buffer  = "";
+                let buffer = "";
 
                 while (true) {
                     const { done, value } = await reader.read();
@@ -134,48 +145,67 @@ export function AgentChat({
                         if (!line.startsWith("data: ")) continue;
                         const json = line.slice(6).trim();
                         if (!json) continue;
-                        try { dispatchAgentEvent(asstMsgId, JSON.parse(json) as AgentEvent); }
-                        catch { /* skip malformed frame */ }
+                        try {
+                            dispatchAgentEvent(asstMsgId, JSON.parse(json) as AgentEvent);
+                        } catch {
+                            /* skip malformed frame */
+                        }
                     }
                 }
             } catch (err: unknown) {
                 if ((err as Error).name !== "AbortError") {
-                    updateMsg(asstMsgId, m => ({
-                        ...m, error: `Stream error: ${(err as Error).message}`, isStreaming: false
+                    updateMsg(asstMsgId, (m) => ({
+                        ...m,
+                        error: `Stream error: ${(err as Error).message}`,
+                        isStreaming: false
                     }));
                 }
             } finally {
                 setIsStreaming(false);
-                if (currentAsstMsgIdRef.current === asstMsgId)
-                    currentAsstMsgIdRef.current = null;
+                if (currentAsstMsgIdRef.current === asstMsgId) currentAsstMsgIdRef.current = null;
             }
         }
-    }, [input, isStreaming, protocol, sessionId, apiBase,
-        wsRef, sseAbortRef, currentAsstMsgIdRef,
-        setMessages, setInput, setIsStreaming,
-        dispatchAgentEvent, updateMsg]); // eslint-disable-line react-hooks/exhaustive-deps
+    }, [
+        input,
+        isStreaming,
+        protocol,
+        sessionId,
+        apiBase,
+        wsRef,
+        sseAbortRef,
+        currentAsstMsgIdRef,
+        setMessages,
+        setInput,
+        setIsStreaming,
+        dispatchAgentEvent,
+        updateMsg
+    ]); // eslint-disable-line react-hooks/exhaustive-deps
 
     // ── Derived UI values ─────────────────────────────────────────────────────
-    const inputDisabled  = isStreaming || (protocol === "ws" ? !wsConnected : !sessionId);
-    const statusLabel    = protocol === "ws"
-        ? (wsConnected ? "🔌 WS Connected"  : "🔌 WS Connecting…")
-        : (sessionId   ? "📡 SSE Ready"     : "📡 SSE Connecting…");
-    const statusColor    = (protocol === "ws" ? wsConnected : !!sessionId)
-        ? "var(--ac-success)"
-        : "var(--ac-warning)";
+    const inputDisabled = isStreaming || (protocol === "ws" ? !wsConnected : !sessionId);
+    const statusLabel =
+        protocol === "ws"
+            ? wsConnected
+                ? "🔌 WS Connected"
+                : "🔌 WS Connecting…"
+            : sessionId
+              ? "📡 SSE Ready"
+              : "📡 SSE Connecting…";
+    const statusColor = (protocol === "ws" ? wsConnected : !!sessionId) ? "var(--ac-success)" : "var(--ac-warning)";
 
     // ── Render ────────────────────────────────────────────────────────────────
     return (
         <div className={`agent-chat ${className}`}>
-
             {/* ── Header bar ── */}
             <div className="ac-header">
-                <span className="ac-header__title">🤖 AI Agent</span>
+                <span className="ac-header__title">AI Agent</span>
                 <div className="ac-header__controls">
-                    <span className="ac-status" style={{ color: statusColor }}>{statusLabel}</span>
+                    <span className="ac-status" style={{ color: statusColor }}>
+                        {statusLabel}
+                    </span>
                     <button
                         title="Toggle between WebSocket and SSE"
-                        onClick={() => setProtocol(p => p === "ws" ? "sse" : "ws")}
+                        onClick={() => setProtocol((p) => (p === "ws" ? "sse" : "ws"))}
                         className="ac-protocol-btn"
                     >
                         {protocol === "ws" ? "Switch to SSE" : "Switch to WS"}
@@ -187,17 +217,17 @@ export function AgentChat({
             <div className="ac-message-list">
                 {messages.length === 0 && (
                     <div className="ac-empty-state">
-                        <p>🤖 AI Agent ready</p>
+                        <p>AI Agent ready</p>
                         <p>Connected to your Swagger API tools. Ask me anything!</p>
                     </div>
                 )}
 
-                {messages.map(msg => (
+                {messages.map((msg) => (
                     <MessageBubble
                         key={msg.id}
                         msg={msg}
-                        onApprove={callId => resolveHitl(callId, true,  msg.id)}
-                        onReject={callId  => resolveHitl(callId, false, msg.id)}
+                        onApprove={(callId) => resolveHitl(callId, true, msg.id)}
+                        onReject={(callId) => resolveHitl(callId, false, msg.id)}
                     />
                 ))}
 
@@ -208,8 +238,13 @@ export function AgentChat({
             <div className="ac-input-bar">
                 <textarea
                     value={input}
-                    onChange={e => setInput(e.target.value)}
-                    onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void sendMessage(); } }}
+                    onChange={(e) => setInput(e.target.value)}
+                    onKeyDown={(e) => {
+                        if (e.key === "Enter" && !e.shiftKey) {
+                            e.preventDefault();
+                            void sendMessage();
+                        }
+                    }}
                     placeholder={placeholder}
                     disabled={inputDisabled}
                     rows={2}
